@@ -1,0 +1,39 @@
+#!/usr/bin/python3
+
+import subprocess
+import sys
+
+def parse_fdisk(fdisk_output):
+    result = {}
+    for line in fdisk_output.stdout.split("\n"):
+
+        if not line.startswith("/"): continue
+        parts = line.split()
+
+        inf = {}
+        inf['part_type_guid'] = parts[1]
+
+        result[parts[0]] = inf
+    return result
+
+def main():
+    image=sys.argv[1]
+    subprocess.run(["qemu-nbd", image, "-c","/dev/nbd0"])
+    fdisk_output = subprocess.run("fdisk -l /dev/nbd0 -o Device,Type-UUID",
+            shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+    test_disk="/dev/null"
+    for disk, info in parse_fdisk(fdisk_output).items():
+        if info['part_type_guid'] == "C12A7328-F81F-11D2-BA4B-00A0C93EC93B":
+            print("/dev/nbd0 GPT OK")
+            print("ESP TYPE OK")
+            test_disk = disk
+        print([disk, " ".join(["%s=%r" % i for i in info.items()])])
+
+    subprocess.run(["mount", "-t", "vfat", test_disk, "/tmp/work"])
+    file_output = subprocess.run("file /tmp/work/EFI/BOOT/BOOTAA64.EFI", shell=True, stdout=subprocess.PIPE)
+    print(file_output)
+    subprocess.run(["umount", "-f", "/tmp/work"])
+    subprocess.run(["qemu-nbd", "-d","/dev/nbd0"])
+
+
+if __name__ == '__main__': main()
