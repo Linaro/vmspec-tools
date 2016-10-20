@@ -19,7 +19,7 @@ def unmount(path):
     run(["umount", "-l", path])
 
 def disconnect_nbd(blockdev, temp_dir):
-    run(["qemu-nbd", "-d", blockdev], stderr=subprocess.DEVNULL)
+    run(["qemu-nbd", "-d", blockdev], stdout=subprocess.DEVNULL)
     run(["rm", "-rf", temp_dir])
     run(["rmmod", "nbd"])
 
@@ -46,7 +46,11 @@ def main():
     if image is not None:
         blockdev = "/dev/nbd0"
         test_dir = tempfile.mkdtemp("vmspec")
-        run(["modprobe", "nbd", "max_part=16"])
+        try:
+            run(["modprobe", "nbd", "max_part=16"])
+        except:
+            print("ERROR: \"modprobe nbd\" failed, are your root?")
+            return 1
         time.sleep(2)
         run(["qemu-nbd", image, "-c",blockdev])
         atexit.register(disconnect_nbd, blockdev, test_dir)
