@@ -1,8 +1,12 @@
 #!/usr/bin/python3
 
 import argparse
+import atexit
 import subprocess
 import sys
+import tempfile
+import time
+from subprocess import run
 
 # FIXME use stat / and Check "Device" output
 def find_root_dev():
@@ -10,6 +14,14 @@ def find_root_dev():
 
 def find_esp_mount():
     return "/boot/efi"
+
+def unmount(path):
+    run(["umount", "-l", path])
+
+def disconnect_nbd(blockdev, temp_dir):
+    run(["qemu-nbd", "-d", blockdev], stderr=subprocess.DEVNULL)
+    run(["rm", "-rf", temp_dir])
+    run(["rmmod", "nbd"])
 
 def parse_fdisk(fdisk_output):
     result = {}
@@ -33,29 +45,39 @@ def main():
     #  sudo modprobe nbd max_part=16
     if image is not None:
         blockdev = "/dev/nbd0"
-        test_dir = "/tmp/work" # FIXME random and mkdir
-        subprocess.run(["qemu-nbd", image, "-c",blockdev])
+        test_dir = tempfile.mkdtemp("vmspec")
+        run(["modprobe", "nbd", "max_part=16"])
+        time.sleep(2)
+        run(["qemu-nbd", image, "-c",blockdev])
+        atexit.register(disconnect_nbd, blockdev, test_dir)
     else:
         blockdev = find_root_dev()
         test_dir = find_esp_mount()
 
-    fdisk_output = subprocess.run(["fdisk","-l",blockdev,"-o","Device,Type-UUID"],
+    fdisk_output = run(["fdisk","-l",blockdev,"-o","Device,Type-UUID"],
             stdout=subprocess.PIPE, universal_newlines=True)
+    if fdisk_output.returncode != 0:
+        print("VMSPEC-GPT: FAIL")
+        return 1
+
     test_disk="/dev/null"
+    has_esp = False
     for disk, info in parse_fdisk(fdisk_output).items():
         if info['part_type_guid'] == "C12A7328-F81F-11D2-BA4B-00A0C93EC93B":
-            print("/dev/nbd0 GPT OK")
-            print("ESP TYPE OK")
+            has_esp = True
             test_disk = disk
-        print([disk, " ".join(["%s=%r" % i for i in info.items()])])
+    #    print([disk, " ".join(["%s=%r" % i for i in info.items()])])
+    if has_esp:
+        print("VMSPEC-GPT: PASS")
+        print("VMSPEC-ESP: PASS")
     if image is not None:
-        subprocess.run(["mount", "-t", "vfat", test_disk, test_dir])
-    file_output = subprocess.run(("file %s/EFI/BOOT/BOOTAA64.EFI" % test_dir ), shell=True, stdout=subprocess.PIPE)
-    print(file_output)
-    # FIXME wait until finish
-    if image is not None:
-        subprocess.run(["umount", "-f", "/tmp/work"])
-        subprocess.run(["qemu-nbd", "-d","/dev/nbd0"])
-
+        run(["mount", "-t", "vfat", test_disk, test_dir])
+        atexit.register(unmount, test_dir)
+    file_output = run(("file -b %s/EFI/BOOT/BOOTAA64.EFI" % test_dir ),
+            shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+    if file_output.stdout.startswith('PE32+ executable (EFI application)'):
+        print("VMSPEC-BOOTAA64: PASS")
+    else:
+        print("VMSPEC-BOOTAA64: FAIL")
 
 if __name__ == '__main__': main()
