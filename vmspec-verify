@@ -2,30 +2,36 @@
 
 import argparse
 import atexit
+from glob import glob
+import os
 import subprocess
 import sys
 import tempfile
 import time
-from subprocess import run
 
 # FIXME use stat / and Check "Device" output
 def find_root_dev():
-    return "/dev/vbd"
+    df = subprocess.check_output(["df","/"], universal_newlines=True)
+    for line in df.split("\n"):
+        if line.startswith("/"):
+            return line.split()[0][:-1]
+
+    return "/dev/vda"
 
 def find_esp_mount():
     return "/boot/efi"
 
 def unmount(path):
-    run(["umount", "-l", path])
+    subprocess.call(["umount", "-l", path])
 
 def disconnect_nbd(blockdev, temp_dir):
-    run(["qemu-nbd", "-d", blockdev], stdout=subprocess.DEVNULL)
-    run(["rm", "-rf", temp_dir])
-    run(["rmmod", "nbd"])
+    subprocess.call(["qemu-nbd", "-d", blockdev], stdout=subprocess.DEVNULL)
+    subprocess.call(["rm", "-rf", temp_dir])
+    subprocess.call(["rmmod", "nbd"])
 
 def parse_fdisk(fdisk_output):
     result = {}
-    for line in fdisk_output.stdout.split("\n"):
+    for line in fdisk_output.split("\n"):
 
         if not line.startswith("/"): continue
         parts = line.split()
@@ -47,20 +53,21 @@ def main():
         blockdev = "/dev/nbd0"
         test_dir = tempfile.mkdtemp("vmspec")
         try:
-            run(["modprobe", "nbd", "max_part=16"])
+            subprocess.call(["modprobe", "nbd", "max_part=16"])
         except:
             print("ERROR: \"modprobe nbd\" failed, are your root?")
             return 1
         time.sleep(2)
-        run(["qemu-nbd", image, "-c",blockdev])
+        subprocess.call(["qemu-nbd", image, "-c",blockdev])
         atexit.register(disconnect_nbd, blockdev, test_dir)
     else:
         blockdev = find_root_dev()
         test_dir = find_esp_mount()
 
-    fdisk_output = run(["fdisk","-l",blockdev,"-o","Device,Type-UUID"],
-            stdout=subprocess.PIPE, universal_newlines=True)
-    if fdisk_output.returncode != 0:
+    try:
+        fdisk_output = subprocess.check_output(["fdisk","-l",blockdev,"-o","Device,Type-UUID"],
+                universal_newlines=True)
+    except:
         print("VMSPEC-GPT: FAIL")
         return 1
 
@@ -75,13 +82,41 @@ def main():
         print("VMSPEC-GPT: PASS")
         print("VMSPEC-ESP: PASS")
     if image is not None:
-        run(["mount", "-t", "vfat", test_disk, test_dir])
+        subprocess.call(["mount", "-t", "vfat", test_disk, test_dir])
         atexit.register(unmount, test_dir)
-    file_output = run(("file -b %s/EFI/BOOT/BOOTAA64.EFI" % test_dir ),
-            shell=True, stdout=subprocess.PIPE, universal_newlines=True)
-    if file_output.stdout.startswith('PE32+ executable (EFI application)'):
+    try:
+        file_output = subprocess.check_output(("file -b %s/EFI/BOOT/BOOTAA64.EFI" % test_dir ),
+                universal_newlines=True, shell=True)
+    except:
+        print("VMSPEC-BOOTAA64: FAIL")
+        return 1
+    if file_output.startswith('PE32+ executable (EFI application)'):
         print("VMSPEC-BOOTAA64: PASS")
     else:
         print("VMSPEC-BOOTAA64: FAIL")
+
+    if image is not None:
+        print("skipping runtime tests")
+        return 0
+
+    if os.path.isdir("/sys/firmware/efi"):
+        print("VMSPEC-EFI: PASS")
+    else:
+        print("VMSPEC-EFI: FAIL")
+
+    has_efi_rtc=False
+    for rtc in glob("/sys/class/rtc/rtc*"):
+        if os.path.realpath(rtc).startswith("/sys/devices/platform/rtc-efi/rtc/rtc0"):
+            has_efi_rtc=True
+
+    if has_efi_rtc:
+        print("VMSPEC-EFI-RTC: PASS")
+    else:
+        print("VMSPEC-EFI-RTC: FAIL")
+
+    if os.path.isdir("/sys/firmware/acpi"):
+        print("VMSPEC-ACPI: PASS")
+    else:
+        print("VMSPEC-ACPI: FAIL")
 
 if __name__ == '__main__': main()
