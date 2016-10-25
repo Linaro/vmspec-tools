@@ -73,7 +73,6 @@ def main():
         time.sleep(2)
         subprocess.call(["qemu-nbd", image, "-c",blockdev])
         atexit.register(disconnect_nbd, blockdev, test_dir)
-        time.sleep(2)
     else:
         blockdev = find_root_dev()
         test_dir = find_esp_mount()
@@ -95,6 +94,7 @@ def main():
     #    print([disk, " ".join(["%s=%r" % i for i in info.items()])])
     print_result("VMSPEC-IMAGE-ESP", has_esp)
     if image is not None:
+        subprocess.call(["partprobe", blockdev])
         subprocess.call(["mount", "-t", "vfat", test_disk, test_dir])
         atexit.register(unmount, test_dir)
     try:
