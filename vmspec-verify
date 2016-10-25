@@ -42,6 +42,19 @@ def parse_fdisk(fdisk_output):
         result[parts[0]] = inf
     return result
 
+def print_fail(testname):
+    print("%s: FAIL"  % testname)
+
+def print_pass(testname):
+    print("%s: PASS"  % testname)
+
+def print_result(testname, result):
+    if result:
+        print("%s: PASS"  % testname)
+    else:
+        print("%s: FAIL"  % testname)
+
+
 def main():
     parser = argparse.ArgumentParser(description="VMSPEC validation suite")
     parser.add_argument("-i","--image", help="Image to test")
@@ -60,6 +73,7 @@ def main():
         time.sleep(2)
         subprocess.call(["qemu-nbd", image, "-c",blockdev])
         atexit.register(disconnect_nbd, blockdev, test_dir)
+        time.sleep(2)
     else:
         blockdev = find_root_dev()
         test_dir = find_esp_mount()
@@ -68,8 +82,9 @@ def main():
         fdisk_output = subprocess.check_output(["fdisk","-l",blockdev,"-o","Device,Type-UUID"],
                 universal_newlines=True)
     except:
-        print("VMSPEC-GPT: FAIL")
+        print_fail("VMSPEC-IMAGE-GPT")
         return 1
+    print_pass("VMSPEC-IMAGE-GPT")
 
     test_disk="/dev/null"
     has_esp = False
@@ -78,9 +93,7 @@ def main():
             has_esp = True
             test_disk = disk
     #    print([disk, " ".join(["%s=%r" % i for i in info.items()])])
-    if has_esp:
-        print("VMSPEC-GPT: PASS")
-        print("VMSPEC-ESP: PASS")
+    print_result("VMSPEC-IMAGE-ESP", has_esp)
     if image is not None:
         subprocess.call(["mount", "-t", "vfat", test_disk, test_dir])
         atexit.register(unmount, test_dir)
@@ -88,35 +101,23 @@ def main():
         file_output = subprocess.check_output(("file -b %s/EFI/BOOT/BOOTAA64.EFI" % test_dir ),
                 universal_newlines=True, shell=True)
     except:
-        print("VMSPEC-BOOTAA64: FAIL")
+        print_fail("VMSPEC-IMAGE-BOOTAA64")
         return 1
-    if file_output.startswith('PE32+ executable (EFI application)'):
-        print("VMSPEC-BOOTAA64: PASS")
-    else:
-        print("VMSPEC-BOOTAA64: FAIL")
+    has_bootaa64 = file_output.startswith('PE32+ executable (EFI application)')
+    print_result("VMSPEC-IMAGE-BOOTAA64", has_bootaa64 )
 
     if image is not None:
         print("skipping runtime tests")
         return 0
 
-    if os.path.isdir("/sys/firmware/efi"):
-        print("VMSPEC-EFI: PASS")
-    else:
-        print("VMSPEC-EFI: FAIL")
+    print_result("VMSPEC-OS-EFI", os.path.isdir("/sys/firmware/efi"))
 
     has_efi_rtc=False
     for rtc in glob("/sys/class/rtc/rtc*"):
         if os.path.realpath(rtc).startswith("/sys/devices/platform/rtc-efi/rtc/rtc0"):
             has_efi_rtc=True
+    print_result("VMSPEC-OS-EFI-RTC", has_efi_rtc)
 
-    if has_efi_rtc:
-        print("VMSPEC-EFI-RTC: PASS")
-    else:
-        print("VMSPEC-EFI-RTC: FAIL")
-
-    if os.path.isdir("/sys/firmware/acpi"):
-        print("VMSPEC-ACPI: PASS")
-    else:
-        print("VMSPEC-ACPI: FAIL")
+    print_result("VMSPEC-OS-ACPI", os.path.isdir("/sys/firmware/acpi"))
 
 if __name__ == '__main__': main()
