@@ -65,6 +65,19 @@ def check_hw_description():
 
     print_result("VMSPEC-EFI-ACPI", has_acpi)
 
+def print_fail(testname):
+    print("%s: FAIL"  % testname)
+
+def check_sbsa_console():
+    has_sbsa_uart = False
+    with open('/proc/tty/driver/ttyAMA') as sbsa_uart:
+        for line in sbsa_uart:
+            if line.startswith("serinfo:"): continue
+            parts = line.split()
+            if parts[2]=="SBSA":
+                has_sbsa_uart = True
+    print_result("VMSPEC-OS-SBSA-UART", sbsa_uart)
+
 def main():
     parser = argparse.ArgumentParser(description="VMSPEC validation suite")
     parser.add_argument("-i","--image", help="Image to test")
@@ -129,5 +142,6 @@ def main():
             has_efi_rtc=True
     print_result("VMSPEC-OS-EFI-RTC", has_efi_rtc)
     print_result("VMSPEC-OS-ACPI", os.path.isdir("/sys/firmware/acpi"))
+    check_sbsa_console()
 
 if __name__ == '__main__': main()
