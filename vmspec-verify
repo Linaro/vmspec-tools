@@ -54,6 +54,16 @@ def print_result(testname, result):
     else:
         print("%s: FAIL"  % testname)
 
+def check_hw_description():
+    print_result("VMSPEC-EFI", os.path.isfile("/sys/firmware/efi/systab"))
+    print_result("VMSPEC-EFI-DTB", os.path.isfile("/sys/firmware/fdt"))
+    has_acpi = False
+    with open('/sys/firmware/efi/systab') as acpi:
+        for line in acpi:
+            if line.startswith("ACPI20"):
+                has_acpi = True
+
+    print_result("VMSPEC-EFI-ACPI", has_acpi)
 
 def main():
     parser = argparse.ArgumentParser(description="VMSPEC validation suite")
@@ -110,6 +120,7 @@ def main():
         print("skipping runtime tests")
         return 0
 
+    check_hw_description()
     print_result("VMSPEC-OS-EFI", os.path.isdir("/sys/firmware/efi"))
 
     has_efi_rtc=False
@@ -117,7 +128,6 @@ def main():
         if os.path.realpath(rtc).startswith("/sys/devices/platform/rtc-efi/rtc/rtc0"):
             has_efi_rtc=True
     print_result("VMSPEC-OS-EFI-RTC", has_efi_rtc)
-
     print_result("VMSPEC-OS-ACPI", os.path.isdir("/sys/firmware/acpi"))
 
 if __name__ == '__main__': main()
