@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 import argparse
 import atexit
@@ -25,21 +25,48 @@ def unmount(path):
     subprocess.call(["umount", "-l", path])
 
 def disconnect_nbd(blockdev, temp_dir):
-    subprocess.call(["qemu-nbd", "-d", blockdev], stdout=subprocess.DEVNULL)
+    subprocess.call(["qemu-nbd", "-d", blockdev])
     subprocess.call(["rm", "-rf", temp_dir])
+    time.sleep(2)
     subprocess.call(["rmmod", "nbd"])
 
-def parse_fdisk(fdisk_output):
+def parse_parted(blockdev):
     result = {}
-    for line in fdisk_output.split("\n"):
+    try:
+        output = subprocess.check_output(["parted","-m",blockdev,"-s","print"],
+                universal_newlines=True)
+    except:
+        result["disklabel"] = "not-gpt"
+        return result
+    for line in output.split("\n"):
+        if line.startswith("BYT;"): continue
+        info = line.split(":")
+        if info[0].startswith("/"):
+            result["disklabel"] = info[5]
+            continue
+        if len(info)>=6 and info[6].find("esp")>0:
+            result["esp"] = "%sp%s" % (blockdev, info[0])
+    return result
 
+def parse_fdisk(blockdev):
+    result = {}
+    try:
+        output = subprocess.check_output(["fdisk","-l",blockdev,"-o","Device,Type-UUID"],
+                universal_newlines=True)
+    except:
+        result["disklabel"] = "not-gpt"
+        return result
+
+    for line in output.split("\n"):
+        if line.startswith("Disklabel type"):
+            parts=line.split(":")
+            result["disklabel"] = parts[1].lstrip()
         if not line.startswith("/"): continue
         parts = line.split()
 
-        inf = {}
-        inf['part_type_guid'] = parts[1]
+        if parts[1] == "C12A7328-F81F-11D2-BA4B-00A0C93EC93B":
+            result["esp"] = parts[0]
 
-        result[parts[0]] = inf
     return result
 
 def print_fail(testname):
@@ -100,22 +127,20 @@ def main():
         blockdev = find_root_dev()
         test_dir = find_esp_mount()
 
-    try:
-        fdisk_output = subprocess.check_output(["fdisk","-l",blockdev,"-o","Device,Type-UUID"],
-                universal_newlines=True)
-    except:
-        print_fail("VMSPEC-IMAGE-GPT")
-        return 1
-    print_pass("VMSPEC-IMAGE-GPT")
+    #if os.path.isfile("/sbin/parted"):
+    if False:
+        parts = parse_parted(blockdev)
+    else:
+        parts = parse_fdisk(blockdev)
 
-    test_disk="/dev/null"
-    has_esp = False
-    for disk, info in parse_fdisk(fdisk_output).items():
-        if info['part_type_guid'] == "C12A7328-F81F-11D2-BA4B-00A0C93EC93B":
-            has_esp = True
-            test_disk = disk
-    #    print([disk, " ".join(["%s=%r" % i for i in info.items()])])
-    print_result("VMSPEC-IMAGE-ESP", has_esp)
+    print_result("VMSPEC-IMAGE-GPT", parts["disklabel"] == "gpt")
+    print_result("VMSPEC-IMAGE-ESP", "esp" in parts)
+
+    if "esp" in parts:
+        test_disk=parts["esp"]
+    else:
+        test_disk="/dev/null"
+
     if image is not None:
         subprocess.call(["partprobe", blockdev])
         subprocess.call(["mount", "-t", "vfat", test_disk, test_dir])
