@@ -27,7 +27,7 @@ def unmount(path):
 def disconnect_nbd(blockdev, temp_dir):
     subprocess.call(["qemu-nbd", "-d", blockdev])
     subprocess.call(["rm", "-rf", temp_dir])
-    time.sleep(2)
+    time.sleep(1)
     subprocess.call(["rmmod", "nbd"])
 
 def parse_parted(blockdev):
@@ -120,15 +120,14 @@ def main():
         except:
             print("ERROR: \"modprobe nbd\" failed, are your root?")
             return 1
-        time.sleep(2)
+        time.sleep(1)
         subprocess.call(["qemu-nbd", image, "-c",blockdev])
         atexit.register(disconnect_nbd, blockdev, test_dir)
     else:
         blockdev = find_root_dev()
         test_dir = find_esp_mount()
 
-    #if os.path.isfile("/sbin/parted"):
-    if False:
+    if os.path.isfile("/sbin/parted"):
         parts = parse_parted(blockdev)
     else:
         parts = parse_fdisk(blockdev)
@@ -151,7 +150,8 @@ def main():
     except:
         print_fail("VMSPEC-IMAGE-BOOTAA64")
         return 1
-    has_bootaa64 = file_output.startswith('PE32+ executable (EFI application)')
+    has_bootaa64 = (file_output.startswith("PE32+ executable (EFI application)") or
+        file_output.startswith("MS-DOS executable"))
     print_result("VMSPEC-IMAGE-BOOTAA64", has_bootaa64 )
 
     if image is not None:
