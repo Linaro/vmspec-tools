@@ -44,7 +44,8 @@ def parse_parted(blockdev):
         if info[0].startswith("/"):
             result["disklabel"] = info[5]
             continue
-        if len(info)>=6 and info[6].find("esp")>0:
+        if len(info)>=6 and ( info[6].find("esp")>=0 or
+                info[5] == "EFI System Partition" ):
             result["esp"] = "%sp%s" % (blockdev, info[0])
     return result
 
