@@ -93,9 +93,6 @@ def check_hw_description():
 
     print_result("VMSPEC-EFI-ACPI", has_acpi)
 
-def print_fail(testname):
-    print("%s: FAIL"  % testname)
-
 def check_sbsa_console():
     has_sbsa_uart = False
     with open('/proc/tty/driver/ttyAMA') as sbsa_uart:
@@ -106,6 +103,18 @@ def check_sbsa_console():
                 has_sbsa_uart = True
     print_result("VMSPEC-OS-SBSA-UART", sbsa_uart)
 
+def load_image(blockdev, image):
+    test_dir = tempfile.mkdtemp("vmspec")
+    try:
+        subprocess.call(["modprobe", "nbd", "max_part=16"])
+    except:
+        print("ERROR: \"modprobe nbd\" failed, are your root?")
+        sys.exit(1)
+    time.sleep(1)
+    subprocess.call(["qemu-nbd", image, "-c",blockdev])
+    atexit.register(disconnect_nbd, blockdev, test_dir)
+    return test_dir
+
 def main():
     parser = argparse.ArgumentParser(description="VMSPEC validation suite")
     parser.add_argument("-i","--image", help="Image to test")
@@ -115,15 +124,7 @@ def main():
     #  sudo modprobe nbd max_part=16
     if image is not None:
         blockdev = "/dev/nbd0"
-        test_dir = tempfile.mkdtemp("vmspec")
-        try:
-            subprocess.call(["modprobe", "nbd", "max_part=16"])
-        except:
-            print("ERROR: \"modprobe nbd\" failed, are your root?")
-            return 1
-        time.sleep(1)
-        subprocess.call(["qemu-nbd", image, "-c",blockdev])
-        atexit.register(disconnect_nbd, blockdev, test_dir)
+        test_dir = load_image(blockdev, image)
     else:
         blockdev = find_root_dev()
         test_dir = find_esp_mount()
@@ -151,6 +152,7 @@ def main():
     except:
         print_fail("VMSPEC-IMAGE-BOOTAA64")
         return 1
+
     has_bootaa64 = (file_output.startswith("PE32+ executable (EFI application)") or
         file_output.startswith("MS-DOS executable"))
     print_result("VMSPEC-IMAGE-BOOTAA64", has_bootaa64 )
