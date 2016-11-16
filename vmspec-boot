@@ -1,0 +1,55 @@
+#!/usr/bin/python
+
+import argparse
+import atexit
+from glob import glob
+import os
+import subprocess
+import sys
+import tempfile
+import time
+
+qemu_common = "%s -cpu cortex-a57 -m 1024 -M virt -device virtio-blk-device,drive=image -drive if=none,id=image,file=%s -nographic -device virtio-blk-device,drive=cdrom -drive if=none,id=cdrom,file=cloud.img %s %s"
+
+
+def print_fail(testname):
+    print("%s: FAIL"  % testname)
+
+def print_pass(testname):
+    print("%s: PASS"  % testname)
+
+def print_result(testname, result):
+    if result:
+        print("%s: PASS"  % testname)
+    else:
+        print("%s: FAIL"  % testname)
+
+def main():
+    parser = argparse.ArgumentParser(description="VMSPEC boot testing")
+    parser.add_argument("-i","--image", help="Hard drive Image",
+            default="https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-arm64-uefi1.img")
+    parser.add_argument("-f","--firmware", help="Firmware to test")
+    parser.add_argument("-q","--qemu", help="Qemu to test",
+            default="qemu-system-aarch64")
+    arguments = parser.parse_args()
+    if os.path.exists(arguments.image):
+        image = arguments.image
+    elif os.path.exists(os.path.basename(arguments.image)):
+        image = os.path.basename(arguments.image)
+    else:
+        subprocess.check_call(["wget","-nv",arguments.image])
+        image = os.path.basename(arguments.image)
+
+    firmware = ""
+    if arguments.firmware:
+        firmware = "-bios %s" % arguments.firmware
+
+    if not os.path.exists("cloud.img"):
+        subprocess.call(["cloud-localds","cloud.img", "cloud.txt"])
+    qemu_command = qemu_common % (arguments.qemu, image, firmware, "")
+    print(qemu_command)
+    subprocess.check_call(qemu_command, shell=True)
+
+
+
+if __name__ == '__main__': main()

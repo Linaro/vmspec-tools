@@ -1,0 +1,12 @@
+power_state: 
+  delay: "+60"
+  message: Bye
+  mode: poweroff
+users: 
+  - 
+    groups: "sudo admin"
+    name: vmspec
+    passwd: $6$rounds=4096$7jSrARYt45NpI$3l0q1ZJApipaY0y.jJbO3YBZLBez5N2dTzHqbprEIIzu0l7aDSXZXwzttRwMkoLr.6at8GWq7Snz2lM5SXNzE1
+    sudo: 
+      - "ALL=(ALL) NOPASSWD:ALL"
+
