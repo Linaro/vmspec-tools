@@ -2,11 +2,11 @@
 
 users: 
   - 
-    groups: sudo, adm
+    groups: sudo
     name: vmspec
     passwd: $6$4KK81WJ7$AITVtoPywMkpkhSrpqGQ9nZawRXqeUiko7Hu7FnzmT5NSsEWjtu37b9wrOGf.rvuMMefBsSS7dkc15GepmmIM0
     sudo: 
       - "ALL=(ALL) NOPASSWD:ALL"
 
 runcmd:
-  - sleep 60 && reboot
+  - sleep 60 && poweroff
