@@ -10,7 +10,7 @@ import sys
 import tempfile
 import time
 
-qemu_common = "%s -cpu cortex-a57 -m 1024 -M virt -device virtio-blk-device,drive=image -drive if=none,id=image,file=%s -nographic -device virtio-blk-device,drive=cdrom -drive if=none,id=cdrom,file=cloud.img %s %s"
+qemu_common = "%s -cpu cortex-a57 -m 1024 -M virt -netdev user,id=user0 -device virtio-net-device,netdev=user0 -device virtio-blk-device,drive=image -drive if=none,id=image,file=%s -nographic -device virtio-blk-device,drive=cdrom -drive if=none,id=cdrom,file=cloud.img %s %s"
 
 class Alarm(Exception):
     pass
@@ -56,9 +56,9 @@ def main():
     qemu_command = qemu_common % (arguments.qemu, image, firmware, "")
     print(qemu_command)
     signal.signal(signal.SIGALRM, alarm_handler)
-    signal.alarm(5*60)
+    signal.alarm(10*60)
     try:
-        ret = subprocess.call(qemu_command, shell=True) > 0
+        ret = subprocess.call(qemu_command, shell=True) == 0
         signal.alarm(0)
     except Alarm:
          print("TIMEOUT!")
@@ -67,9 +67,9 @@ def main():
 
     qemu_command = qemu_common % (arguments.qemu, image, firmware, " -machine gic-version=3")
     print(qemu_command)
-    signal.alarm(5*60)
+    signal.alarm(10*60)
     try:
-        ret = subprocess.call(qemu_command, shell=True) > 0
+        ret = subprocess.call(qemu_command, shell=True) == 0
         signal.alarm(0)
     except:
          print("TIMEOUT!")

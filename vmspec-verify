@@ -30,6 +30,18 @@ def disconnect_nbd(blockdev, temp_dir):
     time.sleep(1)
     subprocess.call(["rmmod", "nbd"])
 
+def load_image(blockdev, image):
+    test_dir = tempfile.mkdtemp("vmspec")
+    try:
+        subprocess.call(["modprobe", "nbd", "max_part=16"])
+    except:
+        print("ERROR: \"modprobe nbd\" failed, are your root?")
+        sys.exit(1)
+    time.sleep(1)
+    subprocess.call(["qemu-nbd", image, "-c",blockdev])
+    atexit.register(disconnect_nbd, blockdev, test_dir)
+    return test_dir
+
 def parse_parted(blockdev):
     result = {}
     try:
@@ -102,18 +114,6 @@ def check_sbsa_console():
             if parts[2]=="SBSA":
                 has_sbsa_uart = True
     print_result("VMSPEC-OS-SBSA-UART", sbsa_uart)
-
-def load_image(blockdev, image):
-    test_dir = tempfile.mkdtemp("vmspec")
-    try:
-        subprocess.call(["modprobe", "nbd", "max_part=16"])
-    except:
-        print("ERROR: \"modprobe nbd\" failed, are your root?")
-        sys.exit(1)
-    time.sleep(1)
-    subprocess.call(["qemu-nbd", image, "-c",blockdev])
-    atexit.register(disconnect_nbd, blockdev, test_dir)
-    return test_dir
 
 def main():
     parser = argparse.ArgumentParser(description="VMSPEC validation suite")
