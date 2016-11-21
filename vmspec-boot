@@ -10,7 +10,7 @@ import sys
 import tempfile
 import time
 
-qemu_common = "%s -cpu cortex-a57 -m 1024 -M virt -netdev user,id=user0 -device virtio-net-device,netdev=user0 -device virtio-blk-device,drive=image -drive if=none,id=image,file=%s -nographic -device virtio-blk-device,drive=cdrom -drive if=none,id=cdrom,file=cloud.img %s %s"
+qemu_common = "%s %s -m 1024 -M virt -netdev user,id=user0 -device virtio-net-device,netdev=user0 -device virtio-blk-device,drive=image -drive if=none,id=image,file=%s -nographic -device virtio-blk-device,drive=cdrom -drive if=none,id=cdrom,file=cloud.img %s %s"
 
 default_efi = "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/1468/QEMU-AARCH64/RELEASE_GCC5/QEMU_EFI.fd"
 
@@ -53,13 +53,18 @@ def main():
     if os.path.exists(arguments.firmware):
         firmware = "-bios %s" % arguments.firmware
     else:
-        print("no EFI firmware installed, downloading %s", % (default_efi))
-        subprocess.check_call(["wget","-nv",default_efi])
+        print("no EFI firmware installed, downloading %s" % (default_efi))
+        subprocess.check_call(["wget","-nc", "-nv",default_efi])
         firmware = "-bios ./QEMU_EFI.fd"
+
+    if os.uname()[4] == "aarch64":
+	accel="-cpu host -M accel=kvm"
+    else:
+	accel="-cpu cortex-a57 -M accel=kvm"
 
     if not os.path.exists("cloud.img"):
         subprocess.call(["cloud-localds","cloud.img", "cloud.txt"])
-    qemu_command = qemu_common % (arguments.qemu, image, firmware, "")
+    qemu_command = qemu_common % (arguments.qemu, accel, image, firmware, "")
     print(qemu_command)
     signal.signal(signal.SIGALRM, alarm_handler)
     signal.alarm(10*60)
@@ -71,7 +76,7 @@ def main():
          ret=False
     print_result("VMSPEC-BOOT-AARCH64", ret)
 
-    qemu_command = qemu_common % (arguments.qemu, image, firmware, " -machine gic-version=3")
+    qemu_command = qemu_common % (arguments.qemu, accel, image, firmware, " -machine gic-version=3")
     print(qemu_command)
     signal.alarm(10*60)
     try:
