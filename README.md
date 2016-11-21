@@ -5,7 +5,8 @@ Two ways to run the tool:
 Test offline if an image is formatted properly:
 
 ```bash
-# sudo ./vmspec-verify -i ubuntu-16.04-server-cloudimg-arm64-uefi1.img
+$ sudo apt install qemu-system cloud-utils
+$ sudo ./vmspec-verify
 VMSPEC-IMAGE-GPT: PASS
 VMSPEC-IMAGE-ESP: PASS
 VMSPEC-IMAGE-BOOTAA64: PASS
