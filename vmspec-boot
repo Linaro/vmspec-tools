@@ -41,8 +41,10 @@ def main():
 
     if arguments.silent:
         output = "-display vnc=none -serial file:vmspec-qemu.log"
+        timeout = "timeout 10m "
     else:
-        output = "-nographic"
+        output = "-display vnc=none -serial stdio"
+        timeout = "timeout --foreground 10m "
 
     if os.path.exists(arguments.image):
         image = arguments.image
@@ -81,14 +83,14 @@ def main():
         subprocess.call(["cloud-localds","cloud.img", "cloud.txt"])
     qemu_command = qemu_common % (arguments.qemu, accel, image, firmware_arg, "", output)
     print(qemu_command)
-    ret = subprocess.call("timeout 10m "+qemu_command, shell=True) == 0
+    ret = subprocess.call(timeout+qemu_command, shell=True) == 0
     print_result("VMSPEC-BOOT-AARCH64", ret)
     if arguments.silent:
         subprocess.call(["grep", "VMSPEC-", "vmspec-qemu.log" ])
 
     qemu_command = qemu_common % (arguments.qemu, accel, image, firmware_arg, " -machine gic-version=3", output)
     print(qemu_command)
-    ret = subprocess.call("timeout 10m "+qemu_command, shell=True) == 0
+    ret = subprocess.call(timeout+qemu_command, shell=True) == 0
     print_result("VMSPEC-BOOT-GICv3", ret)
     if arguments.silent:
         subprocess.call(["grep", "VMSPEC-", "vmspec-qemu.log" ])
