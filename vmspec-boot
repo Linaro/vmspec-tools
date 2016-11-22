@@ -35,6 +35,8 @@ def main():
             default="qemu-system-aarch64")
     parser.add_argument("-s","--silent", help="Hide QEMU output",
            action='store_true')
+    parser.add_argument("-p","--persistent", help="Test persistent UEFI variables",
+           action='store_true')
     arguments = parser.parse_args()
 
     if arguments.silent:
@@ -51,12 +53,24 @@ def main():
         subprocess.check_call(["wget","-nv",arguments.image])
         image = os.path.basename(arguments.image)
 
+
     if os.path.exists(arguments.firmware):
-        firmware = "-bios %s" % arguments.firmware
+        firmware = arguments.firmware
     else:
         print("no EFI firmware installed, downloading %s" % (default_efi))
         subprocess.check_call(["wget","-nc", "-nv",default_efi])
-        firmware = "-bios ./QEMU_EFI.fd"
+        firmware = "QEMU_EFI.fd"
+
+    # follow instructions from: https://wiki.linaro.org/LEG/UEFIforQEMU
+    if arguments.persistent:
+        try:
+            subprocess.check_call("cat %s /dev/zero|dd iflag=fullblock bs=1M count=64 of=flash0.img" % firmware,shell=True)
+        except:
+            True
+        subprocess.call("dd if=/dev/zero of=flash1.img bs=1M count=64", shell=True)
+        firmware_arg = "-drive if=pflash,file=flash0.img,format=raw -drive if=pflash,file=flash0.img,format=raw"
+    else:
+        firmware_arg = "-bios %s" % firmware
 
     if os.uname()[4] == "aarch64":
 	accel="-cpu host -M accel=kvm"
@@ -65,14 +79,14 @@ def main():
 
     if not os.path.exists("cloud.img"):
         subprocess.call(["cloud-localds","cloud.img", "cloud.txt"])
-    qemu_command = qemu_common % (arguments.qemu, accel, image, firmware, "", output)
+    qemu_command = qemu_common % (arguments.qemu, accel, image, firmware_arg, "", output)
     print(qemu_command)
     ret = subprocess.call("timeout 10m "+qemu_command, shell=True) == 0
     print_result("VMSPEC-BOOT-AARCH64", ret)
     if arguments.silent:
         subprocess.call(["grep", "VMSPEC-", "vmspec-qemu.log" ])
 
-    qemu_command = qemu_common % (arguments.qemu, accel, image, firmware, " -machine gic-version=3", output)
+    qemu_command = qemu_common % (arguments.qemu, accel, image, firmware_arg, " -machine gic-version=3", output)
     print(qemu_command)
     ret = subprocess.call("timeout 10m "+qemu_command, shell=True) == 0
     print_result("VMSPEC-BOOT-GICv3", ret)
