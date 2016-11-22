@@ -4,7 +4,6 @@ import argparse
 import atexit
 from glob import glob
 import os
-import signal
 import subprocess
 import sys
 import tempfile
@@ -13,12 +12,6 @@ import time
 qemu_common = "%s %s -m 1024 -M virt -netdev user,id=user0 -device virtio-net-device,netdev=user0 -device virtio-blk-device,drive=image -drive if=none,id=image,file=%s -device virtio-blk-device,drive=cdrom -drive if=none,id=cdrom,file=cloud.img,format=raw %s %s %s"
 
 default_efi = "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/1468/QEMU-AARCH64/RELEASE_GCC5/QEMU_EFI.fd"
-
-class Alarm(Exception):
-    pass
-
-def alarm_handler(signum, frame):
-    raise Alarm
 
 def print_fail(testname):
     print("%s: FAIL"  % testname)
@@ -74,27 +67,14 @@ def main():
         subprocess.call(["cloud-localds","cloud.img", "cloud.txt"])
     qemu_command = qemu_common % (arguments.qemu, accel, image, firmware, "", output)
     print(qemu_command)
-    signal.signal(signal.SIGALRM, alarm_handler)
-    signal.alarm(10*60)
-    try:
-        ret = subprocess.call(qemu_command, shell=True) == 0
-        signal.alarm(0)
-    except Alarm:
-        print("TIMEOUT!")
-        ret=False
+    ret = subprocess.call("timeout 10m "+qemu_command, shell=True) == 0
     print_result("VMSPEC-BOOT-AARCH64", ret)
     if arguments.silent:
         subprocess.call(["grep", "VMSPEC-", "vmspec-qemu.log" ])
 
     qemu_command = qemu_common % (arguments.qemu, accel, image, firmware, " -machine gic-version=3", output)
     print(qemu_command)
-    signal.alarm(10*60)
-    try:
-        ret = subprocess.call(qemu_command, shell=True)
-        signal.alarm(0)
-    except:
-        print("TIMEOUT!")
-        ret=False
+    ret = subprocess.call("timeout 10m "+qemu_command, shell=True) == 0
     print_result("VMSPEC-BOOT-GICv3", ret)
     if arguments.silent:
         subprocess.call(["grep", "VMSPEC-", "vmspec-qemu.log" ])
