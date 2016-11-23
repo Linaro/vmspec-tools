@@ -126,7 +126,7 @@ def check_efivars(rootdev):
     print_pass("VMSPEC-EFIVARIABLE")
 
     for line in output.split("\n"):
-        if line.startsWith("BootOrder:"):
+        if line.startswith("BootOrder:"):
             bootorder=line.split()[1]
 
         if "vmspec test" in line:
