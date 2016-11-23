@@ -5,6 +5,7 @@ users:
     groups: sudo
     name: vmspec
     shell: /bin/bash
+    lock_passwd: false
     passwd: $6$4KK81WJ7$AITVtoPywMkpkhSrpqGQ9nZawRXqeUiko7Hu7FnzmT5NSsEWjtu37b9wrOGf.rvuMMefBsSS7dkc15GepmmIM0
 
 packages:
