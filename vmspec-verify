@@ -115,6 +115,34 @@ def check_sbsa_console():
                 has_sbsa_uart = True
     print_result("VMSPEC-OS-SBSA-UART", sbsa_uart)
 
+def check_efivars(rootdev):
+    try:
+        output = subprocess.check_output("efibootmgr",
+                universal_newlines=True, shell=True)
+    except:
+        print_fail("VMSPEC-EFIVARIABLE")
+        return False
+
+    print_pass("VMSPEC-EFIVARIABLE")
+
+    for line in output.split("\n"):
+        if line.startsWith("BootOrder:"):
+            bootorder=line.split()[1]
+
+        if "vmspec test" in line:
+            print_pass("VMSPEC-EFIVARIABLE-READ")
+            return True # a previous run succeeede so assume efivars work
+    try:
+        subprocess.check_call("efibootmgr -q --create --loader x --label \"vmspec test\" -d %s" % rootdev,
+            shell=True)
+    except:
+        print_fail("VMSPEC-EFIVARIABLE-WRITE")
+        return False
+
+    print_pass("VMSPEC-EFIVARIABLE-WRITE")
+    # restore original bootorder
+    subprocess.check_call("efibootmgr -o %s" % bootorder, shell=True)
+
 def main():
     parser = argparse.ArgumentParser(description="VMSPEC validation suite")
     parser.add_argument("-i","--image", help="Image to test")
@@ -174,5 +202,6 @@ def main():
     print_result("VMSPEC-OS-EFI-RTC", has_efi_rtc)
     print_result("VMSPEC-OS-ACPI", os.path.isdir("/sys/firmware/acpi"))
     check_sbsa_console()
+    check_efivars(blockdev)
 
 if __name__ == '__main__': main()
