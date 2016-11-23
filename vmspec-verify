@@ -126,6 +126,9 @@ def main():
         blockdev = "/dev/nbd0"
         test_dir = load_image(blockdev, image)
     else:
+        if not os.uname()[4] == "aarch64":
+            print("Run vmspec-verify inside arm64 VM or pass -i image argument")
+            sys.exit(0)
         blockdev = find_root_dev()
         test_dir = find_esp_mount()
 
