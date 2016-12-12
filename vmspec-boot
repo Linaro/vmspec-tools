@@ -4,7 +4,12 @@ import argparse
 import os
 import subprocess
 
-qemu_common = "%s %s -m 1024 -M virt -netdev user,id=user0 -device virtio-net-device,netdev=user0 -device virtio-rng-pci -device virtio-blk-device,drive=image -drive if=none,id=image,file=%s %s %s %s -device virtio-blk-device,drive=cdrom -drive if=none,id=cdrom,file=cloud.img,format=raw"
+QEMU_CMD_FMT = ("%s %s -m 1024 -M virt "
+                "-netdev user,id=user0 -device virtio-net-device,netdev=user0 "
+                "-device virtio-rng-pci "
+                "-device virtio-blk-device,drive=image -drive if=none,id=image,file=%s %s %s %s "
+                "-device virtio-blk-device,drive=cdrom "
+                "-drive if=none,id=cdrom,file=cloud.img,format=raw")
 
 default_efi = "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/1468/QEMU-AARCH64/RELEASE_GCC5/QEMU_EFI.fd"
 
@@ -71,14 +76,14 @@ def main():
 
     if not os.path.exists("cloud.img"):
         subprocess.call(["cloud-localds","cloud.img", "cloud.txt"])
-    qemu_command = qemu_common % (arguments.qemu, accel, image, firmware_arg, "", output)
+    qemu_command = QEMU_CMD_FMT % (arguments.qemu, accel, image, firmware_arg, "", output)
     print(qemu_command)
     ret = subprocess.call(timeout+qemu_command, shell=True) == 0
     print_result("VMSPEC-BOOT-AARCH64", ret)
     if arguments.silent:
         subprocess.call(["grep", "VMSPEC-", "vmspec-qemu.log" ])
 
-    qemu_command = qemu_common % (arguments.qemu, accel, image, firmware_arg, " -machine gic-version=3", output)
+    qemu_command = QEMU_CMD_FMT % (arguments.qemu, accel, image, firmware_arg, " -machine gic-version=3", output)
     print(qemu_command)
     ret = subprocess.call(timeout+qemu_command, shell=True) == 0
     print_result("VMSPEC-BOOT-GICv3", ret)
