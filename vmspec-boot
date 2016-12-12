@@ -13,12 +13,6 @@ qemu_common = "%s %s -m 1024 -M virt -netdev user,id=user0 -device virtio-net-de
 
 default_efi = "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/1468/QEMU-AARCH64/RELEASE_GCC5/QEMU_EFI.fd"
 
-def print_fail(testname):
-    print("%s: FAIL"  % testname)
-
-def print_pass(testname):
-    print("%s: PASS"  % testname)
-
 def print_result(testname, result):
     if result:
         print("%s: PASS"  % testname)
