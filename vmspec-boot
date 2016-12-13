@@ -27,7 +27,9 @@ def log_result(args, testname, result):
 
 def boot_qemu(args, testname, qemu_cmd):
     "Boot a QEMU instance and gather the online results."
-    if not args.silent:
+    if args.silent:
+        logfile=open("%s.log" % testname, "w")
+    else:
         print qemu_cmd
 
     timeout = "timeout --foreground 10m "
@@ -41,9 +43,14 @@ def boot_qemu(args, testname, qemu_cmd):
                        True if search.groups()[1] == "PASS" else False)
         if nextline == '' and proc.poll() is not None:
             break
-        if not args.silent:
+        if args.silent:
+            logfile.write(nextline)
+        else:
             sys.stdout.write(nextline)
             sys.stdout.flush()
+
+    if args.silent:
+        logfile.close()
 
     proc.communicate()
     log_result(args, testname, proc.returncode == 0)
