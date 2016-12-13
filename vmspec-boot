@@ -19,7 +19,7 @@ default_efi = "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-
 
 results = []
 
-def log_result(testname, result):
+def log_result(args, testname, result):
     "Log result for summary."
     results.append((testname, result))
     if not args.silent:
@@ -37,7 +37,7 @@ def boot_qemu(args, testname, qemu_cmd):
         nextline = proc.stdout.readline()
         search = boot_result_re.search(nextline)
         if search and len(search.groups()) == 2:
-            log_result(search.groups()[0],
+            log_result(args, search.groups()[0],
                        True if search.groups()[1] == "PASS" else False)
         if nextline == '' and proc.poll() is not None:
             break
@@ -46,7 +46,7 @@ def boot_qemu(args, testname, qemu_cmd):
             sys.stdout.flush()
 
     proc.communicate()
-    log_result(testname, proc.returncode == 0)
+    log_result(args, testname, proc.returncode == 0)
 
 
 def main():
