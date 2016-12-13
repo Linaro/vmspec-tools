@@ -30,7 +30,7 @@ def boot_qemu(args, testname, qemu_cmd):
     if args.silent:
         logfile=open("%s.log" % testname, "w")
     else:
-        print qemu_cmd
+        print(qemu_cmd)
 
     timeout = "timeout --foreground 10m "
 
@@ -105,9 +105,9 @@ def main():
         firmware_arg = "-bios %s" % firmware
 
     if os.uname()[4] == "aarch64":
-	accel="-cpu host -M accel=kvm"
+        accel="-cpu host -M accel=kvm"
     else:
-	accel="-cpu cortex-a57"
+        accel="-cpu cortex-a57"
 
     if not os.path.exists("cloud.img"):
         subprocess.call(["cloud-localds","cloud.img", "cloud.txt"])
@@ -124,7 +124,7 @@ def main():
 
     fails = 0
     for r in results:
-        print "%s: %s" % (r[0], "PASS" if r[1] else "FAIL")
+        print ("%s: %s" % (r[0], "PASS" if r[1] else "FAIL"))
         if not r[1]:
             fails += 1
 
