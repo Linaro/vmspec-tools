@@ -22,7 +22,8 @@ results = []
 def log_result(testname, result):
     "Log result for summary."
     results.append((testname, result))
-    print ("%s: %s" % (testname, "PASS" if result else "FAIL"))
+    if not args.silent:
+        print ("%s: %s" % (testname, "PASS" if result else "FAIL"))
 
 def boot_qemu(args, testname, qemu_cmd):
     "Boot a QEMU instance and gather the online results."
