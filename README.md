@@ -63,5 +63,10 @@ This will boot the image twice, first with vgic-v2 and writing an
 UEFI variable, and second time with vgic-v3 and reading the variable
 back. The tests will use kvm if run natively on aarch64, and tcg else.
 
-The default test artifacts are system qemu, /usr/share/qemu-efi/QEMU\_EFI.fd
-and Ubuntu 16.4 LTS arm64 image.
+## Test artefacts
+
+By default the test will use the following:
+
+* system installed qemu-system-aarch64 (from the qemu-system-arm package)
+* /usr/share/qemu-efi/QEMU\_EFI.fd (from qemu-efi package)
+* Ubuntu 16.4 LTS arm64 image (downloaded from https://cloud-images.ubuntu.com)

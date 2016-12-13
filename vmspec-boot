@@ -19,15 +19,18 @@ default_efi = "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-
 
 results = []
 
-def log_result(testname, result):
+def log_result(args, testname, result):
     "Log result for summary."
     results.append((testname, result))
-    print ("%s: %s" % (testname, "PASS" if result else "FAIL"))
+    if not args.silent:
+        print ("%s: %s" % (testname, "PASS" if result else "FAIL"))
 
 def boot_qemu(args, testname, qemu_cmd):
     "Boot a QEMU instance and gather the online results."
-    if not args.silent:
-        print qemu_cmd
+    if args.silent:
+        logfile=open("%s.log" % testname, "w")
+    else:
+        print(qemu_cmd)
 
     timeout = "timeout --foreground 10m "
 
@@ -36,16 +39,21 @@ def boot_qemu(args, testname, qemu_cmd):
         nextline = proc.stdout.readline()
         search = boot_result_re.search(nextline)
         if search and len(search.groups()) == 2:
-            log_result(search.groups()[0],
+            log_result(args, search.groups()[0],
                        True if search.groups()[1] == "PASS" else False)
         if nextline == '' and proc.poll() is not None:
             break
-        if not args.silent:
+        if args.silent:
+            logfile.write(nextline)
+        else:
             sys.stdout.write(nextline)
             sys.stdout.flush()
 
+    if args.silent:
+        logfile.close()
+
     proc.communicate()
-    log_result(testname, proc.returncode == 0)
+    log_result(args, testname, proc.returncode == 0)
 
 
 def main():
@@ -97,9 +105,9 @@ def main():
         firmware_arg = "-bios %s" % firmware
 
     if os.uname()[4] == "aarch64":
-	accel="-cpu host -M accel=kvm"
+        accel="-cpu host -M accel=kvm"
     else:
-	accel="-cpu cortex-a57"
+        accel="-cpu cortex-a57"
 
     if not os.path.exists("cloud.img"):
         subprocess.call(["cloud-localds","cloud.img", "cloud.txt"])
@@ -116,7 +124,7 @@ def main():
 
     fails = 0
     for r in results:
-        print "%s: %s" % (r[0], "PASS" if r[1] else "FAIL")
+        print ("%s: %s" % (r[0], "PASS" if r[1] else "FAIL"))
         if not r[1]:
             fails += 1
 
