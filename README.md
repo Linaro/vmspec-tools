@@ -88,3 +88,10 @@ the image using cloud-init.  Other images can be verified externally using
 vmspec-verify -i and booted manually (see vmspec-boot for an example QEMU
 command line) and cloning this tool inside the guest and running vmspec-verify
 from within the guest as well.
+
+## Limitations
+
+* If this system is run on hardware with KVM that doesn't support GICv3 or
+  GICv2, the corresponding test will be reporte as FAIL.
+* We have successfully tested this tool with QEMU v2.6.2, Linux host (KVM) v4.7,
+  and the Ubuntu 16.10 cloud image.
