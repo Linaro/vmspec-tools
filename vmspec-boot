@@ -61,7 +61,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="VMSPEC boot testing")
     parser.add_argument("-i","--image", help="Hard drive Image",
-            default="https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-arm64-uefi1.img")
+            default="https://cloud-images.ubuntu.com/yakkety/current/yakkety-server-cloudimg-arm64.img")
     parser.add_argument("-f","--firmware", help="Firmware to test",
             default="/usr/share/qemu-efi/QEMU_EFI.fd")
     parser.add_argument("-q","--qemu", help="Qemu to test",
