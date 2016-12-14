@@ -117,7 +117,10 @@ def main():
     boot_qemu(arguments, "VMSPEC-BOOT-DEFAULT", qemu_command)
 
     # Boot forcing GICv3
-    if not arguments.no_3:
+    if arguments.no_3 and arguments.persistent:
+        qemu_command = QEMU_CMD_FMT % (arguments.qemu, accel, image, firmware_arg, "", output)
+        boot_qemu(arguments, "VMSPEC-BOOT-2ND", qemu_command)
+    else:
         qemu_command = QEMU_CMD_FMT % (arguments.qemu, accel, image, firmware_arg,
                                        " -machine gic-version=3", output)
         boot_qemu(arguments, "VMSPEC-BOOT-GICv3", qemu_command)
