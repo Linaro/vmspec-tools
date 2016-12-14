@@ -9,7 +9,7 @@ import re
 QEMU_CMD_FMT = ("%s %s -m 1024 -M virt "
                 "-netdev user,id=user0 -device virtio-net-device,netdev=user0 "
                 "-device virtio-rng-pci "
-                "-device virtio-blk-device,drive=image -drive if=none,id=image,file=%s %s %s %s "
+                "-device virtio-blk-device,drive=image -drive if=none,id=image,file=%s,snapshot=on %s %s %s "
                 "-device virtio-blk-device,drive=cdrom "
                 "-drive if=none,id=cdrom,file=cloud.img,format=raw")
 
