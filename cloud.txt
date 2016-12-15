@@ -13,6 +13,7 @@ packages:
   - efibootmgr
 
 runcmd:
-  - wget -nc https://raw.githubusercontent.com/suihkulokki/vmspec-tools/master/vmspec-verify
-  - python ./vmspec-verify
-  - rm -rf /var/lib/cloud/* && sleep 10 && poweroff
+  - wget -nc https://raw.githubusercontent.com/linaro/vmspec-tools/master/vmspec-verify
+  - python ./vmspec-verify > /dev/console
+  - sleep 10 && poweroff
+
