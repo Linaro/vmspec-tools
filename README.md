@@ -1,6 +1,11 @@
 # vmspec-tools
-Tools for verifying vmspec compliance
-Two ways to run the tool:
+
+These are tools for verifying ARM based hypervisors and the guests
+they run meet the
+[VM System Specification](http://www.linaro.org/app/resources/WhitePaper/VMSystemSpecificationForARM-v2.0.pdf).
+
+There are two ways to run the tool:
+
 ## Image verification
 Test offline if an image is formatted properly:
 
