@@ -56,6 +56,8 @@ optional arguments:
   -q QEMU, --qemu QEMU  Qemu to test
   -s, --silent          Hide QEMU output
   -p, --persistent      Test persistent UEFI variables
+  --no-3                Disable testing of GICv3
+  --mmio                Use mmio instead of pci
 ```
 
 To boot default test artifacts with UEFI persistent variable tests:
@@ -104,3 +106,5 @@ from within the guest as well.
   GICv2, the corresponding test will be reporte as FAIL.
 * We have successfully tested this tool with QEMU v2.6.2, Linux host (KVM) v4.7,
   and the Ubuntu 16.10 cloud image.
+* If the kernel in your guest image doesn't support virtio-pci on aarch64, use the
+  --mmio switch for testing with virtio-mmio.

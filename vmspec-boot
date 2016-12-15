@@ -72,9 +72,9 @@ def main():
            action='store_true')
     parser.add_argument("-p","--persistent", help="Test persistent UEFI variables",
            action='store_true')
-    parser.add_argument("--no-3", help="Disable testung if GICv3 (if your hardware doesn't have it)",
+    parser.add_argument("--no-3", help="Disable testing of GICv3",
                         action='store_true')
-    parser.add_argument("--mmio", help="Use mmio instead of pci (if your guest doesn't support it)",
+    parser.add_argument("--mmio", help="Use mmio instead of pci",
                         action='store_true')
 
     arguments = parser.parse_args()
