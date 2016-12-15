@@ -7,11 +7,13 @@ import subprocess
 import re
 
 QEMU_CMD_FMT = ("%s %s -m 1024 -M virt "
-                "-netdev user,id=user0 -device virtio-net-device,netdev=user0 "
+                "-netdev user,id=user0 -device virtio-net-%s,netdev=user0 "
                 "-device virtio-rng-pci "
-                "-device virtio-blk-device,drive=image -drive if=none,id=image,file=%s,snapshot=on %s %s %s "
-                "-device virtio-blk-device,drive=cdrom "
-                "-drive if=none,id=cdrom,file=cloud.img,format=raw")
+                "-device virtio-blk-%s,drive=image "
+                "-drive if=none,id=image,file=%s,snapshot=on "
+                "-device virtio-blk-%s,drive=cdrom "
+                "-drive if=none,id=cdrom,file=cloud.img,format=raw "
+                "%s %s %s ")
 
 boot_result_re = re.compile("^.*(VMSPEC-.*): (PASS|FAIL)")
 
@@ -72,6 +74,8 @@ def main():
            action='store_true')
     parser.add_argument("--no-3", help="Disable testung if GICv3 (if your hardware doesn't have it)",
                         action='store_true')
+    parser.add_argument("--mmio", help="Use mmio instead of pci (if your guest doesn't support it)",
+                        action='store_true')
 
     arguments = parser.parse_args()
     output = "-display vnc=none -serial stdio"
@@ -112,17 +116,22 @@ def main():
     if not os.path.exists("cloud.img"):
         subprocess.call(["cloud-localds","cloud.img", "cloud.txt"])
 
+    if arguments.mmio:
+        dt="device"
+    else:
+        dt="pci"
+
     # Default Boot
-    qemu_command = QEMU_CMD_FMT % (arguments.qemu, accel, image, firmware_arg, "", output)
+    qemu_command = QEMU_CMD_FMT % (arguments.qemu, accel, dt, dt, image, dt, firmware_arg, "", output)
     boot_qemu(arguments, "VMSPEC-BOOT-DEFAULT", qemu_command)
 
     # Boot forcing GICv3
     if arguments.persistent:
         if arguments.no_3:
-            qemu_command = QEMU_CMD_FMT % (arguments.qemu, accel, image, firmware_arg, "", output)
+            qemu_command = QEMU_CMD_FMT % (arguments.qemu, accel, dt, dt, image, dt, firmware_arg, "", output)
             boot_qemu(arguments, "VMSPEC-BOOT-2ND", qemu_command)
         else:
-            qemu_command = QEMU_CMD_FMT % (arguments.qemu, accel, image, firmware_arg,
+            qemu_command = QEMU_CMD_FMT % (arguments.qemu, accel, dt, dt, image, dt, firmware_arg,
                                            " -machine gic-version=3", output)
             boot_qemu(arguments, "VMSPEC-BOOT-GICv3", qemu_command)
     fails = 0
