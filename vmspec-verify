@@ -110,10 +110,12 @@ def check_sbsa_console():
     with open('/proc/tty/driver/ttyAMA') as sbsa_uart:
         for line in sbsa_uart:
             if line.startswith("serinfo:"): continue
-            parts = line.split()
-            if parts[2]=="SBSA":
+            parts = line.split(":")
+            if parts[2].startswith("SBSA"):
                 has_sbsa_uart = True
-    print_result("VMSPEC-OS-SBSA-UART", sbsa_uart)
+            elif parts[2].startswith("PL011"):
+                has_sbsa_uart = True
+    print_result("VMSPEC-OS-SBSA-UART", has_sbsa_uart)
 
 def check_efivars(rootdev):
     try:
