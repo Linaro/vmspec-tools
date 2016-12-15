@@ -63,6 +63,10 @@ This will boot the image twice, first with vgic-v2 and writing an
 UEFI variable, and second time with vgic-v3 and reading the variable
 back. The tests will use kvm if run natively on aarch64, and tcg else.
 
+The image is booted using QEMU's block snapshot driver so no changes
+are made to the original disk image during the boot. Any updates to
+the file-system will be discarded once the test has completed.
+
 ## Test artefacts
 
 By default the test will use the following:
