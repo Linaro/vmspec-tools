@@ -10,11 +10,17 @@ import tempfile
 import time
 
 # FIXME use stat / and Check "Device" output
-def find_root_dev():
-    df = subprocess.check_output(["df","/"], universal_newlines=True)
-    for line in df.split("\n"):
-        if line.startswith("/"):
-            return line.split()[0][:-1]
+def find_gpt_dev():
+    partition_list = [ "/boot/efi", "/boot", "/"]
+    for partition in partition_list:
+        try:
+            df = subprocess.check_output(["df", partition], universal_newlines=True)
+        except:
+            continue
+
+        for line in df.split("\n"):
+            if line.startswith("/"):
+                return line.split()[0][:-1]
 
     return "/dev/vda"
 
@@ -159,7 +165,7 @@ def main():
         if not os.uname()[4] == "aarch64":
             print("Run vmspec-verify inside arm64 VM or pass -i image argument")
             sys.exit(0)
-        blockdev = find_root_dev()
+        blockdev = find_gpt_dev()
         test_dir = find_esp_mount()
 
     if os.path.isfile("/sbin/parted"):
