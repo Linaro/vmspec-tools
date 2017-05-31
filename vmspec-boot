@@ -17,7 +17,7 @@ QEMU_CMD_FMT = ("%s %s -m 1024 -M virt "
 
 boot_result_re = re.compile("^.*(VMSPEC-.*): (PASS|FAIL)")
 
-default_efi = "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/1468/QEMU-AARCH64/RELEASE_GCC5/QEMU_EFI.fd"
+default_efi = "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/1979/QEMU-AARCH64/RELEASE_GCC5/QEMU_EFI.fd"
 
 results = []
 
@@ -72,6 +72,8 @@ def main():
            action='store_true')
     parser.add_argument("-p","--persistent", help="Test persistent UEFI variables",
            action='store_true')
+    parser.add_argument("-d","--device-tree", help="Disable ACPI and force Device Tree",
+           action='store_true')
     parser.add_argument("--no-3", help="Disable testing of GICv3",
                         action='store_true')
     parser.add_argument("--mmio", help="Use mmio instead of pci",
@@ -96,6 +98,9 @@ def main():
         print("no EFI firmware installed, downloading %s" % (default_efi))
         subprocess.check_call(["wget","-nc", "-nv",default_efi])
         firmware = "QEMU_EFI.fd"
+
+    if arguments.device_tree:
+        firmware = "%s %s" % (firmware, "-no-acpi")
 
     # follow instructions from: https://wiki.linaro.org/LEG/UEFIforQEMU
     if arguments.persistent:
